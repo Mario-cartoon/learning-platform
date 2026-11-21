@@ -2,38 +2,603 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Учебная платформа</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 960px; margin: 24px auto; padding: 0 16px; color: #222; }
-        h1 { margin-bottom: 4px; }
-        .hint { color: #666; margin-top: 0; }
-        .layout { display: grid; grid-template-columns: 1fr 1.4fr; gap: 24px; }
-        .course { padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 8px; cursor: pointer; }
-        .course:hover, .course.active { border-color: #3b6fd8; background: #f4f7fd; }
-        .muted { color: #777; font-size: 14px; }
-        .module { margin-top: 12px; }
-        .tag { display: inline-block; background: #eef1f6; border-radius: 4px; padding: 2px 6px; margin-right: 4px; font-size: 13px; }
-        .error { color: #b00020; }
+        :root {
+            --accent: #3b6fd8;
+            --accent-dark: #2d58b3;
+            --accent-light: #eef3fd;
+            --ok: #1d7a3a;
+            --ok-light: #e5f6ea;
+            --err: #b00020;
+            --err-light: #fdecee;
+            --text: #222;
+            --muted: #777;
+            --border: #e3e6ec;
+            --radius: 10px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1260px;
+            margin: 0 auto;
+            padding: 0 16px 40px;
+            color: var(--text);
+            background: #f7f8fb;
+        }
+
+        /* ---------- шапка ---------- */
+        header {
+            margin: 24px 0 16px;
+            padding: 24px 28px;
+            border-radius: var(--radius);
+            color: #fff;
+            background: linear-gradient(120deg, #3b6fd8, #6a4fd8, #3b9bd8);
+            background-size: 200% 200%;
+            animation: gradientMove 8s ease infinite, fadeUp .6s ease both;
+        }
+        header h1 { margin: 0 0 6px; }
+        header p { margin: 0; opacity: .9; }
+        header a { color: #fff; font-weight: bold; }
+
+        .page { display: grid; grid-template-columns: 1fr 360px; gap: 20px; align-items: start; }
+
+        /* ---------- вкладки ---------- */
+        .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+        .tabs button {
+            padding: 8px 14px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            background: #fff;
+            color: var(--text);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all .2s ease;
+        }
+        .tabs button:hover { border-color: var(--accent); color: var(--accent); }
+        .tabs button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+        .tab { display: none; }
+        .tab.active { display: block; animation: fadeUp .35s ease; }
+
+        h2 { font-size: 18px; margin: 0 0 12px; }
+        h3 { margin-top: 0; }
+
+        .card {
+            padding: 16px 18px;
+            margin-bottom: 16px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+        .card h3 { font-size: 16px; margin-bottom: 12px; }
+        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+        /* ---------- формы ---------- */
+        .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+        .fields .wide { grid-column: 1 / -1; }
+        label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+        input, select, textarea {
+            padding: 8px 10px;
+            font: inherit;
+            font-size: 14px;
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: #fff;
+            transition: border-color .2s ease, box-shadow .2s ease;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 111, 216, .15);
+        }
+        textarea { resize: vertical; min-height: 64px; }
+        .hint-small { font-size: 12px; color: var(--muted); }
+
+        .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .btn {
+            padding: 8px 14px;
+            font-size: 14px;
+            border: none;
+            border-radius: 6px;
+            background: var(--accent);
+            color: #fff;
+            cursor: pointer;
+            transition: background .2s ease, transform .1s ease;
+        }
+        .btn:hover { background: var(--accent-dark); }
+        .btn:active { transform: scale(.97); }
+        .btn:disabled { opacity: .6; cursor: wait; }
+        .btn.ghost { background: #fff; color: var(--accent); border: 1px solid var(--accent); }
+        .btn.ghost:hover { background: var(--accent-light); }
+        .btn.danger { background: var(--err); }
+        .btn.danger:hover { background: #8c001a; }
+        .btn.small { padding: 4px 10px; font-size: 12px; }
+
+        /* ---------- обзор курсов ---------- */
+        .overview { display: grid; grid-template-columns: 1fr 1.4fr; gap: 20px; align-items: start; }
+        .course {
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-left: 4px solid transparent;
+            border-radius: var(--radius);
+            cursor: pointer;
+            opacity: 0;
+            animation: fadeUp .45s ease forwards;
+            animation-delay: calc(var(--i) * 80ms);
+            transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+        }
+        .course:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(59, 111, 216, .15);
+            border-color: var(--accent);
+        }
+        .course.active { background: var(--accent-light); border-color: var(--accent); border-left-color: var(--accent); }
+        .muted { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+        #details {
+            min-height: 120px;
+            padding: 18px 20px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+        #details.animate { animation: slideIn .4s ease; }
+
+        .module {
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: #fafbfd;
+            opacity: 0;
+            animation: fadeUp .4s ease forwards;
+            animation-delay: calc(var(--i) * 100ms + 150ms);
+        }
+        .module ol { margin: 8px 0 0; padding-left: 22px; }
+        .module li { margin: 3px 0; }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            margin: 0 4px 4px 0;
+            font-size: 12px;
+            border-radius: 12px;
+            background: #eef1f6;
+            animation: pop .3s ease both;
+            animation-delay: calc(var(--i, 0) * 60ms);
+        }
+        .tag.green { background: var(--ok-light); color: var(--ok); }
+        .tag.red { background: var(--err-light); color: var(--err); }
+        .tag.blue { background: var(--accent-light); color: var(--accent); }
+        .rating { color: #f0a500; letter-spacing: 1px; }
+
+        /* ---------- результаты ---------- */
+        .result { margin-top: 12px; }
+        .result:empty { display: none; }
+        .item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            margin-bottom: 6px;
+            font-size: 14px;
+            border-radius: 6px;
+            background: #fafbfd;
+            border: 1px solid var(--border);
+            animation: fadeUp .3s ease both;
+            animation-delay: calc(var(--i, 0) * 40ms);
+        }
+        .item .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+        .question { padding: 10px 12px; margin-bottom: 10px; border-radius: 8px; background: #fafbfd; }
+        .question label { flex-direction: row; align-items: center; gap: 8px; color: var(--text); font-size: 14px; margin: 6px 0; }
+
+        .score-big {
+            padding: 16px;
+            margin-top: 12px;
+            font-size: 28px;
+            font-weight: bold;
+            text-align: center;
+            border-radius: var(--radius);
+            animation: pop .5s ease both;
+        }
+        .score-big.passed { background: var(--ok-light); color: var(--ok); }
+        .score-big.failed { background: var(--err-light); color: var(--err); }
+
+        /* ---------- журнал запросов ---------- */
+        .log {
+            position: sticky;
+            top: 16px;
+            max-height: calc(100vh - 32px);
+            display: flex;
+            flex-direction: column;
+            background: #1e2230;
+            color: #d6dae4;
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+        .log-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: #262b3b; }
+        .log-head b { color: #fff; }
+        .log-head button { background: none; border: 1px solid #4a5168; color: #d6dae4; border-radius: 6px; cursor: pointer; padding: 3px 8px; }
+        #log { overflow-y: auto; padding: 8px; font-family: Consolas, monospace; font-size: 12px; }
+        #log:empty::before { content: 'Здесь появятся запросы и ответы сервера'; color: #7c8299; display: block; padding: 8px; }
+        .log-entry { padding: 8px; margin-bottom: 6px; border-radius: 6px; background: #262b3b; border-left: 3px solid #4a5168; animation: slideIn .3s ease; }
+        .log-entry.ok { border-left-color: #3cb371; }
+        .log-entry.err { border-left-color: #ff5c6c; }
+        .log-entry .method { font-weight: bold; color: #8fb3ff; margin-right: 4px; }
+        .log-entry .status { float: right; font-weight: bold; }
+        .log-entry.ok .status { color: #3cb371; }
+        .log-entry.err .status { color: #ff5c6c; }
+        .log-entry details { margin-top: 6px; }
+        .log-entry summary { cursor: pointer; color: #9aa1b8; }
+        .log-entry pre { margin: 6px 0 0; white-space: pre-wrap; word-break: break-word; color: #e6e9f0; max-height: 260px; overflow: auto; }
+
+        /* ---------- уведомление снизу ---------- */
+        #toast {
+            position: fixed;
+            left: 50%;
+            bottom: 24px;
+            max-width: 520px;
+            padding: 12px 18px;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, .2);
+            transform: translate(-50%, 150%);
+            transition: transform .35s ease;
+            z-index: 10;
+        }
+        #toast.show { transform: translate(-50%, 0); }
+        #toast.ok { background: var(--ok); }
+        #toast.err { background: var(--err); }
+
+        .skeleton {
+            height: 58px;
+            margin-bottom: 10px;
+            border-radius: var(--radius);
+            background: linear-gradient(90deg, #eceff4 25%, #f6f7fa 50%, #eceff4 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.2s infinite;
+        }
+        .error { color: var(--err); animation: shake .4s ease; }
+
+        /* ---------- анимации ---------- */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(16px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes pop {
+            0% { transform: scale(.6); opacity: 0; }
+            80% { transform: scale(1.08); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+        @keyframes shimmer {
+            from { background-position: 200% 0; }
+            to { background-position: -200% 0; }
+        }
+        @keyframes gradientMove {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        @keyframes shake {
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition: none !important; opacity: 1 !important; }
+        }
+
+        @media (max-width: 1000px) {
+            .page { grid-template-columns: 1fr; }
+            .log { position: static; max-height: 420px; }
+        }
+        @media (max-width: 700px) {
+            .overview, .grid2, .fields { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
-<h1>Учебная платформа</h1>
-<p class="hint">Простой интерфейс поверх REST API. Полный список запросов — в <a href="/swagger-ui.html">Swagger UI</a>.</p>
+<header>
+    <h1>Учебная платформа</h1>
+    <p>REST API. Полный список запросов — в <a href="/swagger-ui.html">Swagger UI</a>,
+        а основные сценарии можно протыкать прямо здесь.</p>
+</header>
 
-<div class="layout">
-    <div>
-        <h2>Курсы</h2>
-        <div id="courses">Загрузка...</div>
+<div class="page">
+<main>
+    <nav class="tabs">
+        <button data-tab="overview" class="active">Обзор</button>
+        <button data-tab="users">Пользователи</button>
+        <button data-tab="courses">Курсы</button>
+        <button data-tab="enrollments">Запись на курс</button>
+        <button data-tab="assignments">Задания</button>
+        <button data-tab="quizzes">Тесты</button>
+        <button data-tab="reviews">Отзывы и уведомления</button>
+    </nav>
+
+    <!-- ===== Обзор ===== -->
+    <section class="tab active" id="tab-overview">
+        <div class="overview">
+            <div>
+                <h2>Курсы</h2>
+                <div id="courses">
+                    <div class="skeleton"></div>
+                    <div class="skeleton"></div>
+                    <div class="skeleton"></div>
+                </div>
+            </div>
+            <div>
+                <h2>Структура курса</h2>
+                <div id="details" class="muted">Выберите курс слева</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Пользователи ===== -->
+    <section class="tab" id="tab-users">
+        <div class="grid2">
+            <div class="card">
+                <h3>Новый пользователь</h3>
+                <div class="fields">
+                    <label class="wide">Имя <input id="u-name" placeholder="Иван Иванов"></label>
+                    <label>Email <input id="u-email" placeholder="ivan@edu.local"></label>
+                    <label>Роль
+                        <select id="u-role">
+                            <option value="STUDENT">STUDENT</option>
+                            <option value="TEACHER">TEACHER</option>
+                            <option value="ADMIN">ADMIN</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="actions"><button class="btn" data-op="createUser">Создать</button></div>
+            </div>
+            <div class="card">
+                <h3>Новая категория</h3>
+                <div class="fields">
+                    <label class="wide">Название <input id="cat-name" placeholder="Мобильная разработка"></label>
+                </div>
+                <div class="actions"><button class="btn" data-op="createCategory">Создать</button></div>
+                <div class="result" id="categories-list"></div>
+            </div>
+        </div>
+        <div class="card">
+            <h3>Все пользователи</h3>
+            <div class="result" id="users-list"></div>
+        </div>
+    </section>
+
+    <!-- ===== Курсы ===== -->
+    <section class="tab" id="tab-courses">
+        <div class="card">
+            <h3>Создать курс</h3>
+            <div class="fields">
+                <label class="wide">Название <input id="c-title" placeholder="Spring Boot с нуля"></label>
+                <label class="wide">Описание <textarea id="c-description" placeholder="О чём курс"></textarea></label>
+                <label>Категория <select id="c-category" class="sel-category"></select></label>
+                <label>Преподаватель <select id="c-teacher" class="sel-teacher"></select></label>
+                <label>Длительность, часов <input id="c-duration" type="number" min="1" placeholder="24"></label>
+                <label>Теги через запятую <input id="c-tags" placeholder="Java, Spring"></label>
+                <label class="wide">Модули и уроки
+                    <textarea id="c-modules" rows="3" placeholder="Введение: Что такое Spring; Первый проект&#10;REST: Контроллеры; Обработка ошибок"></textarea>
+                    <span class="hint-small">Каждая строка — модуль. После двоеточия уроки через точку с запятой. Можно оставить пустым.</span>
+                </label>
+            </div>
+            <div class="actions"><button class="btn" data-op="createCourse">Создать курс</button></div>
+        </div>
+
+        <div class="grid2">
+            <div class="card">
+                <h3>Изменить курс</h3>
+                <div class="fields">
+                    <label class="wide">Курс <select id="cu-course" class="sel-course"></select></label>
+                    <label class="wide">Новое название <input id="cu-title" placeholder="оставьте пустым, чтобы не менять"></label>
+                    <label class="wide">Новое описание <input id="cu-description" placeholder="оставьте пустым, чтобы не менять"></label>
+                    <label class="wide">Новый преподаватель <select id="cu-teacher" class="sel-teacher"></select></label>
+                </div>
+                <div class="actions">
+                    <button class="btn" data-op="updateCourse">Сохранить</button>
+                    <button class="btn danger" data-op="deleteCourse">Удалить курс</button>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Добавить модуль</h3>
+                <div class="fields">
+                    <label class="wide">Курс <select id="m-course" class="sel-course"></select></label>
+                    <label class="wide">Название модуля <input id="m-title" placeholder="Работа с БД"></label>
+                    <label class="wide">Уроки через точку с запятой <input id="m-lessons" placeholder="JPA; Репозитории"></label>
+                </div>
+                <div class="actions"><button class="btn" data-op="addModule">Добавить</button></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== Запись на курс ===== -->
+    <section class="tab" id="tab-enrollments">
+        <div class="card">
+            <h3>Запись студента</h3>
+            <div class="fields">
+                <label>Курс <select id="e-course" class="sel-course"></select></label>
+                <label>Студент <select id="e-student" class="sel-student"></select></label>
+            </div>
+            <div class="actions">
+                <button class="btn" data-op="enroll">Записать</button>
+                <button class="btn ghost" data-op="completeEnrollment">Отметить курс пройденным</button>
+                <button class="btn danger" data-op="unenroll">Отписать</button>
+            </div>
+            <div class="actions">
+                <button class="btn ghost" data-op="courseStudents">Студенты курса</button>
+                <button class="btn ghost" data-op="studentCourses">Курсы студента</button>
+            </div>
+            <div class="result" id="enrollments-result"></div>
+        </div>
+    </section>
+
+    <!-- ===== Задания ===== -->
+    <section class="tab" id="tab-assignments">
+        <div class="card">
+            <h3>1. Выберите урок</h3>
+            <div class="fields">
+                <label>Курс <select id="a-course" class="sel-course"></select></label>
+                <label>Урок <select id="a-lesson"><option value="">— сначала выберите курс —</option></select></label>
+            </div>
+        </div>
+
+        <div class="grid2">
+            <div class="card">
+                <h3>2. Создать задание к уроку</h3>
+                <div class="fields">
+                    <label class="wide">Название <input id="a-title" placeholder="Сделать CRUD для курсов"></label>
+                    <label class="wide">Описание <input id="a-description"></label>
+                    <label>Макс. балл <input id="a-max" type="number" value="100"></label>
+                    <label>Дедлайн <input id="a-due" type="datetime-local"></label>
+                </div>
+                <div class="actions"><button class="btn" data-op="createAssignment">Создать задание</button></div>
+            </div>
+            <div class="card">
+                <h3>3. Отправить решение</h3>
+                <div class="fields">
+                    <label class="wide">Задание <select id="a-assignment"><option value="">— сначала выберите урок —</option></select></label>
+                    <label class="wide">Студент <select id="s-student" class="sel-student"></select></label>
+                    <label class="wide">Решение <textarea id="s-content" placeholder="Ссылка на репозиторий или текст"></textarea></label>
+                </div>
+                <div class="actions"><button class="btn" data-op="submitSolution">Отправить</button></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>4. Проверка решений</h3>
+            <div class="fields">
+                <label class="wide">Решение <select id="g-submission"><option value="">— сначала выберите задание —</option></select></label>
+                <label>Преподаватель <select id="g-teacher" class="sel-teacher"></select></label>
+                <label>Оценка <input id="g-score" type="number" placeholder="90"></label>
+                <label class="wide">Комментарий <input id="g-feedback" placeholder="Хорошо, но..."></label>
+            </div>
+            <div class="actions">
+                <button class="btn" data-op="gradeSubmission">Поставить оценку</button>
+                <button class="btn ghost" data-op="assignmentSubmissions">Все решения по заданию</button>
+                <button class="btn ghost" data-op="studentSubmissions">Решения выбранного студента</button>
+            </div>
+            <div class="result" id="submissions-result"></div>
+        </div>
+    </section>
+
+    <!-- ===== Тесты ===== -->
+    <section class="tab" id="tab-quizzes">
+        <div class="card">
+            <h3>Выберите модуль</h3>
+            <div class="fields">
+                <label>Курс <select id="q-course" class="sel-course"></select></label>
+                <label>Модуль <select id="q-module"><option value="">— сначала выберите курс —</option></select></label>
+            </div>
+        </div>
+
+        <div class="grid2">
+            <div class="card">
+                <h3>Создать тест для модуля</h3>
+                <div class="fields">
+                    <label class="wide">Название <input id="q-title" placeholder="Тест по модулю"></label>
+                    <label>Проходной балл, % <input id="q-passing" type="number" value="60"></label>
+                    <label>Лимит, минут <input id="q-limit" type="number" placeholder="15"></label>
+                </div>
+                <div class="actions"><button class="btn" data-op="createQuiz">Создать тест</button></div>
+            </div>
+            <div class="card">
+                <h3>Добавить вопрос</h3>
+                <div class="fields">
+                    <label class="wide">Вопрос <input id="qq-text" placeholder="Какой FetchType у @OneToMany?"></label>
+                    <label class="wide">Тип
+                        <select id="qq-type">
+                            <option value="SINGLE_CHOICE">Один правильный ответ</option>
+                            <option value="MULTIPLE_CHOICE">Несколько правильных ответов</option>
+                        </select>
+                    </label>
+                    <label class="wide">Варианты, каждый с новой строки
+                        <textarea id="qq-options" rows="3" placeholder="EAGER&#10;*LAZY"></textarea>
+                        <span class="hint-small">Правильный вариант отметьте звёздочкой в начале.</span>
+                    </label>
+                </div>
+                <div class="actions"><button class="btn" data-op="addQuestion">Добавить вопрос</button></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Пройти тест</h3>
+            <div class="fields">
+                <label class="wide">Студент <select id="t-student" class="sel-student"></select></label>
+            </div>
+            <div class="actions">
+                <button class="btn ghost" data-op="loadQuiz">Открыть тест модуля</button>
+                <button class="btn ghost" data-op="quizResults">Результаты по тесту</button>
+            </div>
+            <div class="result" id="quiz-take"></div>
+        </div>
+    </section>
+
+    <!-- ===== Отзывы и уведомления ===== -->
+    <section class="tab" id="tab-reviews">
+        <div class="grid2">
+            <div class="card">
+                <h3>Отзыв о курсе</h3>
+                <div class="fields">
+                    <label>Курс <select id="r-course" class="sel-course"></select></label>
+                    <label>Студент <select id="r-student" class="sel-student"></select></label>
+                    <label>Оценка
+                        <select id="r-rating">
+                            <option value="5">★★★★★</option>
+                            <option value="4">★★★★☆</option>
+                            <option value="3">★★★☆☆</option>
+                            <option value="2">★★☆☆☆</option>
+                            <option value="1">★☆☆☆☆</option>
+                        </select>
+                    </label>
+                    <label class="wide">Комментарий <textarea id="r-comment"></textarea></label>
+                </div>
+                <div class="actions">
+                    <button class="btn" data-op="addReview">Оставить отзыв</button>
+                    <button class="btn ghost" data-op="showReviews">Отзывы курса</button>
+                </div>
+                <div class="result" id="reviews-result"></div>
+            </div>
+            <div class="card">
+                <h3>Уведомления</h3>
+                <div class="fields">
+                    <label class="wide">Пользователь <select id="n-user" class="sel-user"></select></label>
+                </div>
+                <div class="actions"><button class="btn ghost" data-op="showNotifications">Показать</button></div>
+                <div class="result" id="notifications-result"></div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<aside class="log">
+    <div class="log-head">
+        <b>Журнал запросов</b>
+        <button id="log-clear">очистить</button>
     </div>
-    <div>
-        <h2>Структура курса</h2>
-        <div id="details" class="muted">Выберите курс слева</div>
-    </div>
+    <div id="log"></div>
+</aside>
 </div>
 
+<div id="toast"></div>
+
 <script>
-    const coursesEl = document.getElementById('courses');
-    const detailsEl = document.getElementById('details');
+    // ================= общие функции =================
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => [...document.querySelectorAll(selector)];
+    const state = { users: [], categories: [], courses: [] };
 
     function escapeHtml(value) {
         const div = document.createElement('div');
@@ -41,59 +606,547 @@
         return div.innerHTML;
     }
 
-    async function getJson(url) {
-        const response = await fetch(url);
-        const body = await response.json();
-        if (!response.ok) {
-            throw new Error(body.message || response.statusText);
-        }
-        return body;
+    function val(id) {
+        return $('#' + id).value.trim();
     }
 
-    async function loadCourses() {
-        try {
-            const courses = await getJson('/api/courses');
-            if (courses.length === 0) {
-                coursesEl.textContent = 'Курсов пока нет';
-                return;
-            }
-            coursesEl.innerHTML = courses.map(c => `
-                <div class="course" data-id="${c.id}">
-                    <b>${escapeHtml(c.title)}</b>
-                    <div class="muted">${escapeHtml(c.category)} · ${escapeHtml(c.teacherName)}</div>
-                </div>`).join('');
-            coursesEl.querySelectorAll('.course').forEach(el =>
-                el.addEventListener('click', () => showCourse(el)));
-        } catch (e) {
-            coursesEl.innerHTML = `<span class="error">${escapeHtml(e.message)}</span>`;
+    function numOrNull(value) {
+        return value === '' || value == null ? null : Number(value);
+    }
+
+    // для id в адресе запроса: без него запрос не отправить
+    function need(id, message) {
+        const value = val(id);
+        if (!value) {
+            throw new Error(message);
         }
+        return value;
+    }
+
+    function formatDate(value) {
+        return value ? new Date(value).toLocaleString('ru-RU') : '—';
+    }
+
+    class ApiError extends Error {
+        constructor(message, data) {
+            super(message);
+            this.data = data;
+        }
+    }
+
+    async function api(method, url, body, silent = false) {
+        const options = { method, headers: {} };
+        if (body !== undefined) {
+            options.headers['Content-Type'] = 'application/json';
+            options.body = JSON.stringify(body);
+        }
+        const response = await fetch(url, options);
+        const text = await response.text();
+        let data = null;
+        try {
+            data = text ? JSON.parse(text) : null;
+        } catch (e) {
+            data = text;
+        }
+        if (!silent) {
+            addLog(method, url, response.status, body, data);
+        }
+        if (!response.ok) {
+            let message = (data && data.message) || response.statusText;
+            if (data && data.fieldErrors) {
+                message += ': ' + Object.values(data.fieldErrors).join('; ');
+            }
+            throw new ApiError(message, data);
+        }
+        return data;
+    }
+
+    const get = (url) => api('GET', url, undefined, true);
+
+    function addLog(method, url, status, requestBody, responseBody) {
+        const entry = document.createElement('div');
+        entry.className = 'log-entry ' + (status < 400 ? 'ok' : 'err');
+        const request = requestBody !== undefined
+            ? `<details><summary>тело запроса</summary><pre>${escapeHtml(JSON.stringify(requestBody, null, 2))}</pre></details>`
+            : '';
+        const response = responseBody !== null
+            ? `<details ${status >= 400 ? 'open' : ''}><summary>ответ</summary><pre>${escapeHtml(JSON.stringify(responseBody, null, 2))}</pre></details>`
+            : '';
+        entry.innerHTML = `<span class="status">${status}</span><span class="method">${method}</span>${escapeHtml(url)}${request}${response}`;
+        $('#log').prepend(entry);
+    }
+
+    let toastTimer;
+    function toast(message, type = 'ok') {
+        const el = $('#toast');
+        el.textContent = message;
+        el.className = type + ' show';
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+    }
+
+    function renderItems(targetId, items, render, emptyText = 'Пусто') {
+        $('#' + targetId).innerHTML = items.length
+            ? items.map((item, i) => `<div class="item" style="--i: ${i}">${render(item)}</div>`).join('')
+            : `<div class="muted">${emptyText}</div>`;
+    }
+
+    function fillSelect(select, items, label, placeholder) {
+        const previous = select.value;
+        select.innerHTML = `<option value="">${placeholder}</option>`
+            + items.map(item => `<option value="${item.id}">${escapeHtml(label(item))}</option>`).join('');
+        if (items.some(item => String(item.id) === previous)) {
+            select.value = previous;
+        }
+    }
+
+    // ================= загрузка общих данных =================
+    async function refreshAll() {
+        const [users, categories, courses] = await Promise.all([
+            get('/api/users'), get('/api/categories'), get('/api/courses')
+        ]);
+        state.users = users;
+        state.categories = categories;
+        state.courses = courses;
+
+        const teachers = users.filter(u => u.role === 'TEACHER');
+        const students = users.filter(u => u.role === 'STUDENT');
+        $$('.sel-teacher').forEach(s => fillSelect(s, teachers, u => `${u.id}. ${u.name}`, '— преподаватель —'));
+        $$('.sel-student').forEach(s => fillSelect(s, students, u => `${u.id}. ${u.name}`, '— студент —'));
+        $$('.sel-user').forEach(s => fillSelect(s, users, u => `${u.id}. ${u.name} (${u.role})`, '— пользователь —'));
+        $$('.sel-category').forEach(s => fillSelect(s, categories, c => c.name, '— категория —'));
+        $$('.sel-course').forEach(s => fillSelect(s, courses, c => `${c.id}. ${c.title}`, '— курс —'));
+
+        renderCourseList();
+        renderItems('users-list', users, u => `
+            <div><b>${u.id}. ${escapeHtml(u.name)}</b> <span class="tag blue">${u.role}</span>
+                <div class="sub">${escapeHtml(u.email)}</div></div>
+            <button class="btn danger small" data-op="deleteUser" data-id="${u.id}">удалить</button>`);
+        renderItems('categories-list', categories, c => `<span>${c.id}. ${escapeHtml(c.name)}</span>`);
+    }
+
+    // ================= вкладка "Обзор" =================
+    function stars(rating) {
+        if (!rating) {
+            return 'нет оценок';
+        }
+        const full = Math.round(rating);
+        return `<span class="rating">${'★'.repeat(full)}${'☆'.repeat(5 - full)}</span> ${rating.toFixed(1)}`;
+    }
+
+    function replayAnimation(el) {
+        el.classList.remove('animate');
+        void el.offsetWidth;
+        el.classList.add('animate');
+    }
+
+    function renderCourseList() {
+        const coursesEl = $('#courses');
+        if (state.courses.length === 0) {
+            coursesEl.innerHTML = '<div class="muted">Курсов пока нет — создайте на вкладке «Курсы»</div>';
+            return;
+        }
+        coursesEl.innerHTML = state.courses.map((c, i) => `
+            <div class="course" data-id="${c.id}" style="--i: ${i}">
+                <b>${escapeHtml(c.title)}</b>
+                <div class="muted">${escapeHtml(c.category)} · ${escapeHtml(c.teacherName)}</div>
+            </div>`).join('');
+        $$('#courses .course').forEach(el => el.addEventListener('click', () => showCourse(el)));
     }
 
     async function showCourse(el) {
-        coursesEl.querySelectorAll('.course').forEach(c => c.classList.remove('active'));
+        const detailsEl = $('#details');
+        $$('#courses .course').forEach(c => c.classList.remove('active'));
         el.classList.add('active');
+        detailsEl.classList.remove('muted');
+        detailsEl.innerHTML = '<div class="skeleton"></div><div class="skeleton"></div>';
         try {
             const [course, reviews] = await Promise.all([
-                getJson(`/api/courses/${el.dataset.id}`),
-                getJson(`/api/courses/${el.dataset.id}/reviews`)
+                get(`/api/courses/${el.dataset.id}`),
+                get(`/api/courses/${el.dataset.id}/reviews`)
             ]);
-            const rating = reviews.averageRating ? reviews.averageRating.toFixed(1) : 'нет оценок';
             detailsEl.innerHTML = `
                 <h3>${escapeHtml(course.title)}</h3>
                 <p>${escapeHtml(course.description)}</p>
-                <p>${course.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</p>
-                <p class="muted">Преподаватель: ${escapeHtml(course.teacherName)} · Рейтинг: ${rating}</p>
-                ${course.modules.map(m => `
-                    <div class="module">
-                        <b>${m.orderIndex}. ${escapeHtml(m.title)}</b> ${m.quizId ? '<span class="tag">есть тест</span>' : ''}
+                <p>${course.tags.map((t, i) => `<span class="tag" style="--i: ${i}">${escapeHtml(t)}</span>`).join('')}</p>
+                <p class="muted">Преподаватель: ${escapeHtml(course.teacherName)} · Рейтинг: ${stars(reviews.averageRating)}</p>
+                ${course.modules.map((m, i) => `
+                    <div class="module" style="--i: ${i}">
+                        <b>${m.orderIndex}. ${escapeHtml(m.title)}</b>
+                        ${m.quizId ? '<span class="tag green">есть тест</span>' : ''}
                         <ol>${m.lessons.map(l => `<li>${escapeHtml(l.title)}</li>`).join('')}</ol>
                     </div>`).join('')}`;
         } catch (e) {
             detailsEl.innerHTML = `<span class="error">${escapeHtml(e.message)}</span>`;
         }
+        replayAnimation(detailsEl);
     }
 
-    loadCourses();
+    // ================= зависимые списки =================
+    async function loadLessons() {
+        const lessonSelect = $('#a-lesson');
+        const courseId = val('a-course');
+        if (!courseId) {
+            fillSelect(lessonSelect, [], () => '', '— сначала выберите курс —');
+            return;
+        }
+        const course = await get(`/api/courses/${courseId}`);
+        const lessons = course.modules.flatMap(m =>
+            m.lessons.map(l => ({ id: l.id, title: `${m.orderIndex}.${l.orderIndex} ${l.title}` })));
+        fillSelect(lessonSelect, lessons, l => l.title, '— урок —');
+        await loadAssignments();
+    }
+
+    async function loadAssignments() {
+        const lessonId = val('a-lesson');
+        const assignments = lessonId ? await get(`/api/lessons/${lessonId}/assignments`) : [];
+        fillSelect($('#a-assignment'), assignments, a => `${a.id}. ${a.title} (макс. ${a.maxScore})`, '— задание —');
+        await loadSubmissions();
+    }
+
+    async function loadSubmissions() {
+        const assignmentId = val('a-assignment');
+        const submissions = assignmentId ? await get(`/api/assignments/${assignmentId}/submissions`) : [];
+        fillSelect($('#g-submission'), submissions,
+            s => `${s.id}. ${s.studentName} — ${s.status === 'GRADED' ? s.score + ' баллов' : 'не проверено'}`,
+            '— решение —');
+    }
+
+    async function loadModules() {
+        const courseId = val('q-course');
+        const modules = courseId ? (await get(`/api/courses/${courseId}`)).modules : [];
+        fillSelect($('#q-module'), modules,
+            m => `${m.orderIndex}. ${m.title}${m.quizId ? ' — тест #' + m.quizId : ' — теста нет'}`,
+            '— модуль —');
+        $('#q-module').querySelectorAll('option').forEach(option => {
+            const module = modules.find(m => String(m.id) === option.value);
+            option.dataset.quizId = module && module.quizId ? module.quizId : '';
+        });
+        $('#quiz-take').innerHTML = '';
+    }
+
+    function selectedQuizId() {
+        const option = $('#q-module').selectedOptions[0];
+        const quizId = option && option.dataset.quizId;
+        if (!val('q-module')) {
+            throw new Error('Выберите модуль');
+        }
+        if (!quizId) {
+            throw new Error('У этого модуля ещё нет теста — создайте его');
+        }
+        return quizId;
+    }
+
+    // ================= действия кнопок =================
+    let currentQuiz = null;
+
+    const ops = {
+        // --- пользователи ---
+        async createUser() {
+            const user = await api('POST', '/api/users', { name: val('u-name'), email: val('u-email'), role: val('u-role') });
+            toast(`Создан пользователь ${user.name} (id=${user.id})`);
+            $('#u-name').value = '';
+            $('#u-email').value = '';
+            await refreshAll();
+        },
+        async deleteUser(button) {
+            await api('DELETE', `/api/users/${button.dataset.id}`);
+            toast('Пользователь удалён');
+            await refreshAll();
+        },
+        async createCategory() {
+            const category = await api('POST', '/api/categories', { name: val('cat-name') });
+            toast(`Создана категория «${category.name}»`);
+            $('#cat-name').value = '';
+            await refreshAll();
+        },
+
+        // --- курсы ---
+        async createCourse() {
+            const tags = val('c-tags').split(',').map(t => t.trim()).filter(Boolean);
+            const modules = val('c-modules').split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+                const colon = line.indexOf(':');
+                const title = colon === -1 ? line : line.slice(0, colon);
+                const lessons = colon === -1 ? [] : line.slice(colon + 1).split(';').map(s => s.trim()).filter(Boolean);
+                return { title: title.trim(), lessons: lessons.map(l => ({ title: l })) };
+            });
+            const course = await api('POST', '/api/courses', {
+                title: val('c-title'),
+                description: val('c-description'),
+                categoryId: numOrNull(val('c-category')),
+                teacherId: numOrNull(val('c-teacher')),
+                durationHours: numOrNull(val('c-duration')),
+                tags,
+                modules
+            });
+            toast(`Курс «${course.title}» создан (id=${course.id}, модулей: ${course.modules.length})`);
+            await refreshAll();
+        },
+        async updateCourse() {
+            const id = need('cu-course', 'Выберите курс');
+            const current = await get(`/api/courses/${id}`);
+            const course = await api('PUT', `/api/courses/${id}`, {
+                title: val('cu-title') || current.title,
+                description: val('cu-description') || current.description,
+                categoryId: current.category.id,
+                teacherId: numOrNull(val('cu-teacher')) || current.teacherId,
+                durationHours: current.durationHours,
+                startDate: current.startDate,
+                tags: current.tags
+            });
+            toast(`Курс «${course.title}» сохранён`);
+            await refreshAll();
+        },
+        async deleteCourse() {
+            const id = need('cu-course', 'Выберите курс');
+            await api('DELETE', `/api/courses/${id}`);
+            toast('Курс удалён вместе с модулями, уроками и заданиями');
+            $('#details').innerHTML = 'Выберите курс слева';
+            await refreshAll();
+        },
+        async addModule() {
+            const courseId = need('m-course', 'Выберите курс');
+            const lessons = val('m-lessons').split(';').map(s => s.trim()).filter(Boolean).map(title => ({ title }));
+            const module = await api('POST', `/api/courses/${courseId}/modules`, { title: val('m-title'), lessons });
+            toast(`Модуль «${module.title}» добавлен под номером ${module.orderIndex}`);
+            await refreshAll();
+        },
+
+        // --- запись на курс ---
+        async enroll() {
+            const courseId = need('e-course', 'Выберите курс');
+            const studentId = need('e-student', 'Выберите студента');
+            const result = await api('POST', `/api/courses/${courseId}/enroll?studentId=${studentId}`);
+            toast(`${result.studentName} записан(а) на «${result.courseTitle}»`);
+            await ops.courseStudents();
+        },
+        async unenroll() {
+            const courseId = need('e-course', 'Выберите курс');
+            const studentId = need('e-student', 'Выберите студента');
+            await api('DELETE', `/api/courses/${courseId}/enroll?studentId=${studentId}`);
+            toast('Студент отписан от курса');
+            await ops.courseStudents();
+        },
+        async completeEnrollment() {
+            const courseId = need('e-course', 'Выберите курс');
+            const studentId = need('e-student', 'Выберите студента');
+            await api('PATCH', `/api/courses/${courseId}/enroll/complete?studentId=${studentId}`);
+            toast('Курс отмечен пройденным');
+            await ops.courseStudents();
+        },
+        async courseStudents() {
+            const courseId = need('e-course', 'Выберите курс');
+            const list = await api('GET', `/api/courses/${courseId}/students`);
+            renderItems('enrollments-result', list, e => `
+                <div><b>${escapeHtml(e.studentName)}</b><div class="sub">записан(а) ${formatDate(e.enrolledAt)}</div></div>
+                <span class="tag ${e.status === 'COMPLETED' ? 'green' : 'blue'}">${e.status}</span>`,
+                'На курс пока никто не записан');
+        },
+        async studentCourses() {
+            const studentId = need('e-student', 'Выберите студента');
+            const list = await api('GET', `/api/users/${studentId}/courses`);
+            renderItems('enrollments-result', list, e => `
+                <div><b>${escapeHtml(e.courseTitle)}</b><div class="sub">записан(а) ${formatDate(e.enrolledAt)}</div></div>
+                <span class="tag ${e.status === 'COMPLETED' ? 'green' : 'blue'}">${e.status}</span>`,
+                'Студент не записан ни на один курс');
+        },
+
+        // --- задания ---
+        async createAssignment() {
+            const lessonId = need('a-lesson', 'Выберите курс и урок');
+            const assignment = await api('POST', `/api/lessons/${lessonId}/assignments`, {
+                title: val('a-title'),
+                description: val('a-description'),
+                maxScore: numOrNull(val('a-max')),
+                dueDate: val('a-due') || null
+            });
+            toast(`Задание «${assignment.title}» создано, записанные студенты получили уведомление`);
+            await loadAssignments();
+            $('#a-assignment').value = assignment.id;
+            await loadSubmissions();
+        },
+        async submitSolution() {
+            const assignmentId = need('a-assignment', 'Выберите задание');
+            const submission = await api('POST', `/api/assignments/${assignmentId}/submit`, {
+                studentId: numOrNull(val('s-student')),
+                content: val('s-content')
+            });
+            toast(`Решение отправлено (id=${submission.id})`);
+            await loadSubmissions();
+        },
+        async gradeSubmission() {
+            const submissionId = need('g-submission', 'Выберите решение');
+            const result = await api('PUT', `/api/submissions/${submissionId}/grade`, {
+                teacherId: numOrNull(val('g-teacher')),
+                score: numOrNull(val('g-score')),
+                feedback: val('g-feedback')
+            });
+            toast(`Оценка ${result.score} из ${result.maxScore} сохранена, студенту ушло уведомление`);
+            await loadSubmissions();
+            await ops.assignmentSubmissions();
+        },
+        async assignmentSubmissions() {
+            const assignmentId = need('a-assignment', 'Выберите задание');
+            renderSubmissions(await api('GET', `/api/assignments/${assignmentId}/submissions`));
+        },
+        async studentSubmissions() {
+            const studentId = need('s-student', 'Выберите студента в блоке «Отправить решение»');
+            renderSubmissions(await api('GET', `/api/users/${studentId}/submissions`));
+        },
+
+        // --- тесты ---
+        async createQuiz() {
+            const moduleId = need('q-module', 'Выберите курс и модуль');
+            const quiz = await api('POST', `/api/modules/${moduleId}/quiz`, {
+                title: val('q-title'),
+                passingScore: numOrNull(val('q-passing')),
+                timeLimitMinutes: numOrNull(val('q-limit')),
+                questions: []
+            });
+            toast(`Тест «${quiz.title}» создан (id=${quiz.id}), теперь добавьте вопросы`);
+            await loadModules();
+            $('#q-module').value = moduleId;
+        },
+        async addQuestion() {
+            const quizId = selectedQuizId();
+            const options = val('qq-options').split('\n').map(l => l.trim()).filter(Boolean).map(line => ({
+                text: line.replace(/^\*\s*/, ''),
+                correct: line.startsWith('*')
+            }));
+            await api('POST', `/api/quizzes/${quizId}/questions`, { text: val('qq-text'), type: val('qq-type'), options });
+            toast('Вопрос добавлен');
+            $('#qq-text').value = '';
+            $('#qq-options').value = '';
+        },
+        async loadQuiz() {
+            const quizId = selectedQuizId();
+            currentQuiz = await api('GET', `/api/quizzes/${quizId}`);
+            const questions = currentQuiz.questions.map((q, i) => `
+                <div class="question" style="animation: fadeUp .3s ease both; animation-delay: ${i * 60}ms">
+                    <b>${i + 1}. ${escapeHtml(q.text)}</b>
+                    <span class="tag">${q.type === 'SINGLE_CHOICE' ? 'один ответ' : 'несколько ответов'}</span>
+                    ${q.options.map(o => `
+                        <label><input type="${q.type === 'SINGLE_CHOICE' ? 'radio' : 'checkbox'}"
+                                      name="q${q.id}" value="${o.id}"> ${escapeHtml(o.text)}</label>`).join('')}
+                </div>`).join('');
+            $('#quiz-take').innerHTML = `
+                <h3>${escapeHtml(currentQuiz.title)}</h3>
+                <p class="muted">Проходной балл: ${currentQuiz.passingScore}%
+                    ${currentQuiz.timeLimitMinutes ? ' · лимит ' + currentQuiz.timeLimitMinutes + ' мин' : ''}</p>
+                ${questions || '<div class="muted">В тесте пока нет вопросов</div>'}
+                <div class="actions"><button class="btn" data-op="takeQuiz">Отправить ответы</button></div>
+                <div id="quiz-score"></div>`;
+        },
+        async takeQuiz() {
+            const studentId = need('t-student', 'Выберите студента');
+            const answers = {};
+            currentQuiz.questions.forEach(q => {
+                answers[q.id] = $$(`input[name="q${q.id}"]:checked`).map(input => Number(input.value));
+            });
+            const result = await api('POST', `/api/quizzes/${currentQuiz.id}/take`, { studentId: Number(studentId), answers });
+            $('#quiz-score').innerHTML = `
+                <div class="score-big ${result.passed ? 'passed' : 'failed'}">
+                    ${result.score}% — ${result.passed ? 'тест сдан' : 'тест не сдан'}
+                </div>`;
+            toast(`${result.studentName}: ${result.score}%`, result.passed ? 'ok' : 'err');
+        },
+        async quizResults() {
+            const quizId = selectedQuizId();
+            const results = await api('GET', `/api/quizzes/${quizId}/results`);
+            $('#quiz-take').innerHTML = '<h3>Результаты</h3><div id="quiz-results-list"></div>';
+            renderItems('quiz-results-list', results, r => `
+                <div><b>${escapeHtml(r.studentName)}</b><div class="sub">${formatDate(r.takenAt)}</div></div>
+                <span class="tag ${r.passed ? 'green' : 'red'}">${r.score}%</span>`,
+                'Тест ещё никто не проходил');
+        },
+
+        // --- отзывы и уведомления ---
+        async addReview() {
+            const courseId = need('r-course', 'Выберите курс');
+            await api('POST', `/api/courses/${courseId}/reviews`, {
+                studentId: numOrNull(val('r-student')),
+                rating: Number(val('r-rating')),
+                comment: val('r-comment')
+            });
+            toast('Спасибо за отзыв!');
+            await ops.showReviews();
+        },
+        async showReviews() {
+            const courseId = need('r-course', 'Выберите курс');
+            const summary = await api('GET', `/api/courses/${courseId}/reviews`);
+            renderItems('reviews-result', summary.reviews, r => `
+                <div><b>${escapeHtml(r.studentName)}</b><div class="sub">${escapeHtml(r.comment)}</div></div>
+                <span class="rating">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>`,
+                'Отзывов пока нет');
+            if (summary.reviewsCount) {
+                $('#reviews-result').insertAdjacentHTML('afterbegin',
+                    `<p class="muted">Средняя оценка: ${stars(summary.averageRating)} (${summary.reviewsCount})</p>`);
+            }
+        },
+        async showNotifications() {
+            const userId = need('n-user', 'Выберите пользователя');
+            const list = await api('GET', `/api/users/${userId}/notifications`);
+            renderItems('notifications-result', list, n => `
+                <div>${n.read ? '' : '<b>'}${escapeHtml(n.message)}${n.read ? '' : '</b>'}
+                    <div class="sub">${formatDate(n.createdAt)}</div></div>
+                ${n.read
+                    ? '<span class="tag">прочитано</span>'
+                    : `<button class="btn ghost small" data-op="readNotification" data-id="${n.id}">прочитано</button>`}`,
+                'Уведомлений нет');
+        },
+        async readNotification(button) {
+            await api('PATCH', `/api/notifications/${button.dataset.id}/read`);
+            await ops.showNotifications();
+        }
+    };
+
+    function renderSubmissions(list) {
+        renderItems('submissions-result', list, s => `
+            <div><b>${escapeHtml(s.studentName)}</b> → ${escapeHtml(s.assignmentTitle)}
+                <div class="sub">${escapeHtml(s.content)}</div>
+                ${s.feedback ? `<div class="sub">Комментарий: ${escapeHtml(s.feedback)}</div>` : ''}</div>
+            <span class="tag ${s.status === 'GRADED' ? 'green' : 'blue'}">
+                ${s.status === 'GRADED' ? s.score + ' / ' + s.maxScore : 'на проверке'}</span>`,
+            'Решений пока нет');
+    }
+
+    // ================= обработчики =================
+    $$('.tabs button').forEach(button => button.addEventListener('click', () => {
+        $$('.tabs button').forEach(b => b.classList.toggle('active', b === button));
+        $$('.tab').forEach(tab => tab.classList.toggle('active', tab.id === 'tab-' + button.dataset.tab));
+    }));
+
+    // одна точка обработки всех кнопок с data-op: блокируем кнопку и показываем ошибку
+    document.addEventListener('click', async event => {
+        const button = event.target.closest('[data-op]');
+        if (!button) {
+            return;
+        }
+        button.disabled = true;
+        try {
+            await ops[button.dataset.op](button);
+        } catch (e) {
+            toast(e.message, 'err');
+        } finally {
+            button.disabled = false;
+        }
+    });
+
+    function onChange(id, handler) {
+        $('#' + id).addEventListener('change', () => handler().catch(e => toast(e.message, 'err')));
+    }
+
+    onChange('a-course', loadLessons);
+    onChange('a-lesson', loadAssignments);
+    onChange('a-assignment', loadSubmissions);
+    onChange('q-course', loadModules);
+    onChange('q-module', async () => { $('#quiz-take').innerHTML = ''; });
+
+    $('#log-clear').addEventListener('click', () => { $('#log').innerHTML = ''; });
+
+    refreshAll().catch(e => {
+        $('#courses').innerHTML = `<span class="error">${escapeHtml(e.message)}</span>`;
+    });
 </script>
 </body>
 </html>
