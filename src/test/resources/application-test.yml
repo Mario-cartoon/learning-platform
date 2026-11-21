@@ -1,0 +1,17 @@
+# Тесты: H2 в памяти в режиме совместимости с PostgreSQL, схема создаётся заново
+spring:
+  datasource:
+    url: jdbc:h2:mem:learning_test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+app:
+  demo-data:
+    enabled: false
+
+logging:
+  level:
+    com.example.learningplatform: INFO

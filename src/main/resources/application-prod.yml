@@ -1,0 +1,17 @@
+# Запуск в docker: все параметры только из переменных окружения, без значений по умолчанию
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+app:
+  demo-data:
+    enabled: ${DEMO_DATA_ENABLED:false}
+
+logging:
+  level:
+    com.example.learningplatform: INFO

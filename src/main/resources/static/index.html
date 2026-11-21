@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Учебная платформа</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 960px; margin: 24px auto; padding: 0 16px; color: #222; }
+        h1 { margin-bottom: 4px; }
+        .hint { color: #666; margin-top: 0; }
+        .layout { display: grid; grid-template-columns: 1fr 1.4fr; gap: 24px; }
+        .course { padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 8px; cursor: pointer; }
+        .course:hover, .course.active { border-color: #3b6fd8; background: #f4f7fd; }
+        .muted { color: #777; font-size: 14px; }
+        .module { margin-top: 12px; }
+        .tag { display: inline-block; background: #eef1f6; border-radius: 4px; padding: 2px 6px; margin-right: 4px; font-size: 13px; }
+        .error { color: #b00020; }
+    </style>
+</head>
+<body>
+<h1>Учебная платформа</h1>
+<p class="hint">Простой интерфейс поверх REST API. Полный список запросов — в <a href="/swagger-ui.html">Swagger UI</a>.</p>
+
+<div class="layout">
+    <div>
+        <h2>Курсы</h2>
+        <div id="courses">Загрузка...</div>
+    </div>
+    <div>
+        <h2>Структура курса</h2>
+        <div id="details" class="muted">Выберите курс слева</div>
+    </div>
+</div>
+
+<script>
+    const coursesEl = document.getElementById('courses');
+    const detailsEl = document.getElementById('details');
+
+    function escapeHtml(value) {
+        const div = document.createElement('div');
+        div.textContent = value ?? '';
+        return div.innerHTML;
+    }
+
+    async function getJson(url) {
+        const response = await fetch(url);
+        const body = await response.json();
+        if (!response.ok) {
+            throw new Error(body.message || response.statusText);
+        }
+        return body;
+    }
+
+    async function loadCourses() {
+        try {
+            const courses = await getJson('/api/courses');
+            if (courses.length === 0) {
+                coursesEl.textContent = 'Курсов пока нет';
+                return;
+            }
+            coursesEl.innerHTML = courses.map(c => `
+                <div class="course" data-id="${c.id}">
+                    <b>${escapeHtml(c.title)}</b>
+                    <div class="muted">${escapeHtml(c.category)} · ${escapeHtml(c.teacherName)}</div>
+                </div>`).join('');
+            coursesEl.querySelectorAll('.course').forEach(el =>
+                el.addEventListener('click', () => showCourse(el)));
+        } catch (e) {
+            coursesEl.innerHTML = `<span class="error">${escapeHtml(e.message)}</span>`;
+        }
+    }
+
+    async function showCourse(el) {
+        coursesEl.querySelectorAll('.course').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        try {
+            const [course, reviews] = await Promise.all([
+                getJson(`/api/courses/${el.dataset.id}`),
+                getJson(`/api/courses/${el.dataset.id}/reviews`)
+            ]);
+            const rating = reviews.averageRating ? reviews.averageRating.toFixed(1) : 'нет оценок';
+            detailsEl.innerHTML = `
+                <h3>${escapeHtml(course.title)}</h3>
+                <p>${escapeHtml(course.description)}</p>
+                <p>${course.tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</p>
+                <p class="muted">Преподаватель: ${escapeHtml(course.teacherName)} · Рейтинг: ${rating}</p>
+                ${course.modules.map(m => `
+                    <div class="module">
+                        <b>${m.orderIndex}. ${escapeHtml(m.title)}</b> ${m.quizId ? '<span class="tag">есть тест</span>' : ''}
+                        <ol>${m.lessons.map(l => `<li>${escapeHtml(l.title)}</li>`).join('')}</ol>
+                    </div>`).join('')}`;
+        } catch (e) {
+            detailsEl.innerHTML = `<span class="error">${escapeHtml(e.message)}</span>`;
+        }
+    }
+
+    loadCourses();
+</script>
+</body>
+</html>
